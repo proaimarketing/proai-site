@@ -1,6 +1,8 @@
-const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+import Stripe from "stripe";
 
-module.exports = async (req, res) => {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+export default async function handler(req, res) {
     if (req.method !== "POST") {
         return res.status(405).json({ error: "Method Not Allowed" });
     }
@@ -30,7 +32,7 @@ module.exports = async (req, res) => {
             return res.json({ success: false, message: "Subscription expired or inactive." });
         }
     } catch (error) {
-        console.error(error);
+        console.error("Stripe API Error:", error);
         res.status(500).json({ success: false, message: "Server error. Please try again." });
     }
 };
