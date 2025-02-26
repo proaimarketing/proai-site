@@ -83,6 +83,18 @@
             }
         }
     </script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const loginButton = document.getElementById("loginBtn");
 
+    if (loginButton) {
+        loginButton.addEventListener("click", function() {
+            alert("Login button clicked!");
+        });
+    } else {
+        alert("Login button NOT found!");
+    }
+});
+</script>
 </body>
 </html>
