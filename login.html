@@ -56,7 +56,7 @@
         <p><strong>No password needed!</strong> We verify your access based on your **purchase email**.</p>
         <p>Enter the email you used to purchase Pro AI Marketing. If your account is active, you'll be logged in.</p>
         <input type="email" id="email" placeholder="Enter your email">
-        <button class="btn" onclick="verifyEmail()">Login</button>
+        <button id="loginBtn" class="btn" onclick="verifyEmail()">Login</button>
         <p><small>Haven't purchased yet? <a href="https://buy.stripe.com/9AQeY8e9I0F97babII">Get access here</a>.</small></p>
     </div>
 
@@ -83,18 +83,20 @@
             }
         }
     </script>
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    const loginButton = document.getElementById("loginBtn");
 
-    if (loginButton) {
-        loginButton.addEventListener("click", function() {
-            alert("Login button clicked!");
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const loginButton = document.getElementById("loginBtn");
+
+            if (loginButton) {
+                loginButton.addEventListener("click", function() {
+                    alert("Login button clicked!");
+                });
+            } else {
+                alert("Login button NOT found!");
+            }
         });
-    } else {
-        alert("Login button NOT found!");
-    }
-});
-</script>
+    </script>
+
 </body>
 </html>
