@@ -13,23 +13,35 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Retrieve all customers and filter manually
-        const allCustomers = await stripe.customers.list({ limit: 100 });
-        const customer = allCustomers.data.find(cust => cust.email === email);
+        // Retrieve the customer by email
+        const customers = await stripe.customers.list({ email });
 
-        if (!customer) {
-            return res.json({ success: false, message: "No active subscription found." });
+        if (customers.data.length === 0) {
+            return res.json({ success: false, message: "No payment or subscription found for this email." });
         }
 
-        // Check if customer has a valid subscription
-        const subscriptions = await stripe.subscriptions.list({ customer: customer.id });
+        const customerId = customers.data[0].id;
 
+        // Check for active subscriptions
+        const subscriptions = await stripe.subscriptions.list({ customer: customerId });
         const activeSubscription = subscriptions.data.find(sub => sub.status === "active");
 
         if (activeSubscription) {
-            return res.json({ success: true });
+            return res.json({ success: true, message: "Active subscription found." });
+        }
+
+        // If no active subscription, check for a successful one-time payment
+        const payments = await stripe.paymentIntents.list({
+            customer: customerId,
+            limit: 10, // Check recent payments
+        });
+
+        const successfulPayment = payments.data.find(payment => payment.status === "succeeded");
+
+        if (successfulPayment) {
+            return res.json({ success: true, message: "Successful one-time payment found." });
         } else {
-            return res.json({ success: false, message: "Subscription expired or inactive." });
+            return res.json({ success: false, message: "No valid subscription or one-time payment found." });
         }
     } catch (error) {
         console.error("Stripe API Error:", error);
