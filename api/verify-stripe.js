@@ -13,49 +13,30 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Fetch all customers and find one that matches the email
-        let customers = await stripe.customers.list();
-        let customer = customers.data.find(cust => cust.email === email);
+        // Retrieve Stripe customers based on email
+        const customers = await stripe.customers.list({ email });
 
-        if (!customer) {
-            // If no customer exists, let's check the PaymentIntents directly
-            const payments = await stripe.paymentIntents.list();
-            const successfulPayment = payments.data.find(payment =>
-                payment.status === "succeeded" &&
-                payment.charges.data.some(charge => charge.billing_details.email === email)
-            );
-
-            if (successfulPayment) {
-                return res.json({ success: true, type: "lifetime", message: "One-time payment found." });
-            }
-
-            return res.json({ success: false, message: "No customer or payment found with this email." });
+        if (customers.data.length === 0) {
+            return res.json({ success: false, message: "No customer found with this email." });
         }
 
-        const customerId = customer.id;
+        const customerId = customers.data[0].id;
 
-        // Check if they have an active subscription
-        const subscriptions = await stripe.subscriptions.list({ customer: customerId });
+        // Check for successful payments (one-time charges)
+        const charges = await stripe.paymentIntents.list({
+            customer: customerId,
+            limit: 10, // Fetch recent payments
+        });
 
-        const activeSubscription = subscriptions.data.find(sub => sub.status === "active");
+        const successfulCharge = charges.data.find(charge => charge.status === "succeeded");
 
-        if (activeSubscription) {
-            return res.json({ success: true, type: "subscription", message: "Active subscription found." });
+        if (successfulCharge) {
+            return res.json({ success: true });
+        } else {
+            return res.json({ success: false, message: "No successful payments found." });
         }
-
-        // Check if they made a successful one-time payment
-        const charges = await stripe.paymentIntents.list({ customer: customerId });
-
-        const successfulPayment = charges.data.find(payment => payment.status === "succeeded");
-
-        if (successfulPayment) {
-            return res.json({ success: true, type: "lifetime", message: "One-time payment found." });
-        }
-
-        return res.json({ success: false, message: "No payment or subscription found for this email." });
-
     } catch (error) {
         console.error("Stripe API Error:", error);
         res.status(500).json({ success: false, message: "Server error. Please try again." });
     }
-};
+}
