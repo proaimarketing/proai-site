@@ -13,17 +13,28 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Retrieve all customers and filter manually
+        // Fetch all customers and find one that matches the email
         let customers = await stripe.customers.list();
         let customer = customers.data.find(cust => cust.email === email);
 
         if (!customer) {
-            return res.json({ success: false, message: "No customer found with this email." });
+            // If no customer exists, let's check the PaymentIntents directly
+            const payments = await stripe.paymentIntents.list();
+            const successfulPayment = payments.data.find(payment =>
+                payment.status === "succeeded" &&
+                payment.charges.data.some(charge => charge.billing_details.email === email)
+            );
+
+            if (successfulPayment) {
+                return res.json({ success: true, type: "lifetime", message: "One-time payment found." });
+            }
+
+            return res.json({ success: false, message: "No customer or payment found with this email." });
         }
 
         const customerId = customer.id;
 
-        // Check for active subscriptions
+        // Check if they have an active subscription
         const subscriptions = await stripe.subscriptions.list({ customer: customerId });
 
         const activeSubscription = subscriptions.data.find(sub => sub.status === "active");
@@ -32,12 +43,10 @@ export default async function handler(req, res) {
             return res.json({ success: true, type: "subscription", message: "Active subscription found." });
         }
 
-        // Check for one-time payment (for lifetime members)
+        // Check if they made a successful one-time payment
         const charges = await stripe.paymentIntents.list({ customer: customerId });
 
-        const successfulPayment = charges.data.find(
-            charge => charge.status === "succeeded"
-        );
+        const successfulPayment = charges.data.find(payment => payment.status === "succeeded");
 
         if (successfulPayment) {
             return res.json({ success: true, type: "lifetime", message: "One-time payment found." });
