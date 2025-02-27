@@ -13,36 +13,37 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Retrieve the customer by email
+        // Retrieve customer details based on email
         const customers = await stripe.customers.list({ email });
 
         if (customers.data.length === 0) {
-            return res.json({ success: false, message: "No payment or subscription found for this email." });
+            return res.json({ success: false, message: "No customer found with this email." });
         }
 
         const customerId = customers.data[0].id;
 
         // Check for active subscriptions
         const subscriptions = await stripe.subscriptions.list({ customer: customerId });
+
         const activeSubscription = subscriptions.data.find(sub => sub.status === "active");
 
         if (activeSubscription) {
-            return res.json({ success: true, message: "Active subscription found." });
+            return res.json({ success: true, type: "subscription", message: "Active subscription found." });
         }
 
-        // If no active subscription, check for a successful one-time payment
-        const payments = await stripe.paymentIntents.list({
-            customer: customerId,
-            limit: 10, // Check recent payments
-        });
+        // Check for one-time payment (for lifetime members)
+        const charges = await stripe.paymentIntents.list({ customer: customerId });
 
-        const successfulPayment = payments.data.find(payment => payment.status === "succeeded");
+        const successfulPayment = charges.data.find(
+            charge => charge.status === "succeeded"
+        );
 
         if (successfulPayment) {
-            return res.json({ success: true, message: "Successful one-time payment found." });
-        } else {
-            return res.json({ success: false, message: "No valid subscription or one-time payment found." });
+            return res.json({ success: true, type: "lifetime", message: "One-time payment found." });
         }
+
+        return res.json({ success: false, message: "No payment or subscription found for this email." });
+
     } catch (error) {
         console.error("Stripe API Error:", error);
         res.status(500).json({ success: false, message: "Server error. Please try again." });
