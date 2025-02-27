@@ -1,7 +1,0 @@
-[build]
-  functions = "netlify/functions"  # This tells Netlify where to find functions
-
-[[redirects]]
-  from = "/verify-stripe"
-  to = "/.netlify/functions/verify-stripe"
-  status = 200
