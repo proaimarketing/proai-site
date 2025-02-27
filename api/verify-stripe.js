@@ -13,14 +13,15 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Retrieve customer details based on email
-        const customers = await stripe.customers.list({ email });
+        // Retrieve all customers and filter manually
+        let customers = await stripe.customers.list();
+        let customer = customers.data.find(cust => cust.email === email);
 
-        if (customers.data.length === 0) {
+        if (!customer) {
             return res.json({ success: false, message: "No customer found with this email." });
         }
 
-        const customerId = customers.data[0].id;
+        const customerId = customer.id;
 
         // Check for active subscriptions
         const subscriptions = await stripe.subscriptions.list({ customer: customerId });
